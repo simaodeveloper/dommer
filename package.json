@@ -1,0 +1,22 @@
+{
+  "name": "dommer",
+  "version": "1.0.0",
+  "description": "Dommer.js is a micro library that handles DOM elements like jQuery does",
+  "main": "index.js",
+  "directories": {
+    "example": "examples"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/simaodeveloper/dommer.git"
+  },
+  "author": "Daniel Simão da Silva",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/simaodeveloper/dommer/issues"
+  },
+  "homepage": "https://github.com/simaodeveloper/dommer#readme"
+}
