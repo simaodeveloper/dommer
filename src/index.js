@@ -1,24 +1,20 @@
-import { _hasMatch, _isType } from './utils.js';
+import { _hasMatch, _isType, _isFunctionStrategy } from './utils.js';
 
 const messages = {
   SELECTOR_EMPTY: () => 'Please inform a selector!',
-  INDEX_NOT_EXIST: index => `The informed index (${index}) don\'t exist`,
+  INDEX_NOT_EXIST: index => `The informed index (${index}) isn\'t valid!`,
 };
 
-class Dom {
+class _Dommer {
   constructor(selector) {
     if(_isType(selector, 'string')) {
-      return this.find(selector, context);
+      return this.find(selector);
     }
 
     // handle HTMLElements, Nodelist and HTMLCollection
-    this.elements = selector.length !== undefined
-      ? Array.from(selector)
-      : [selector];
-  }
-
-  static create(elements) {
-    return new Dom(elements);
+    this.elements = _isType(selector.length, 'undefined')
+      ? [selector]
+      : Array.from(selector);
   }
 
   find(selector, context = document) {
@@ -36,45 +32,77 @@ class Dom {
     _elements = _elements.flat(Infinity);
 
     // return a new object to represent the element's list
-    return Dom.create(_elements);
+    return _Dommer.create(_elements);
   }
 
-  attr(key, value) {
-    if (value !== undefined) {
-      this.elements.forEach(element => element.setAttribute(key, value));
-      return this;
-    }
+  toString() {
+    return '[object _Dommer]';
+  }
 
-    return this.elements[0].getAttribute(key);
+  // Attribute Methods
+
+  attr(key, value) {
+    return _isType(value, 'undefined')
+      ? this.get(0).getAttribute(key)
+      : this.each(function() {
+          this.setAttribute(key, value);
+        });
   }
 
   hasAttr(key) {
-    return this.elements[0].hasAttribute(key);
+    return this.get(0).hasAttribute(key);
   }
 
   hasClass(className) {
-    return this.elements[0].classList.contains(className);
+    return this.get(0).classList.contains(className);
   }
 
   removeClass(...classNames) {
-    this.elements.forEach(element => element.classList.remove(...classNames));
-
-    return this;
+    return this.each(function() {
+      this.classList.remove(...classNames);
+    });
   }
 
   addClass(...classNames) {
-    this.elements.forEach(element => element.classList.add(...classNames));
-
-    return this;
+    return this.each(function() {
+      this.classList.add(...classNames);
+    });
   }
 
   toggleClass(...classNames) {
-    this.elements.forEach(element => {
-      classNames.forEach(className => element.classList.toggle(className));
+    return this.each(function() {
+      _Dommer.each(classNames, (index, className) => this.classList.toggle(className))
+    })
+  }
+
+  // Miscellaneous - DOM Elements Methods
+
+  get(index) {
+    return this.elements[index];
+  }
+
+  index(query) {
+    return _isType(query, 'string')
+      ? this.elements.reduce((targetIndex, element, index) => {
+          targetIndex = _hasMatch(element, query) ? index : targetIndex;
+          return targetIndex;
+        }, null)
+      : this.elements.indexOf(query)
+  }
+
+  toArray() {
+    return [...this.elements];
+  }
+
+  each(callback) {
+    _Dommer.each(this.elements, (index, element) => {
+      callback.apply(element, [index, element])
     });
 
     return this;
   }
+
+  // Traversing
 
   eq(index) {
     const elementsLength = this.elements.length;
@@ -84,11 +112,7 @@ class Dom {
       throw new Error(messages.INDEX_NOT_EXIST(index));
     }
 
-    return Dom.create(this.elements[targetIndex]);
-  }
-
-  get(index) {
-    return this.elements[index];
+    return _Dommer.create(this.elements[targetIndex]);
   }
 
   first() {
@@ -100,15 +124,93 @@ class Dom {
   }
 
   filter(query) {
-    return Dom.create(this.elements.filter((element, index, array) => {
-      return _isType(query, 'function')
-        ? query(element, index, array)
-        : _hasMatch(element, query);
-    }));
+    return Dom.create(
+      this.elements.filter((element, index) =>
+        _isType(query, 'function') ? query.apply(element, [index, element]) : _hasMatch(element, query)
+      )
+    );
+  }
+
+  text(text) {
+    if (_isType(text, 'undefined')) {
+      return this.elements[0].textContent;
+    }
+
+    return this.each(function() {
+      this.textContent = text
+    });
+  }
+
+  html(htmlString) {
+    if (_isType(htmlString, 'undefined')) {
+      return this.elements[0].innerHTML;
+    }
+
+    return this.each(function() {
+      this.innerHTML = htmlString
+    });
+  }
+
+  is(query) {
+    return this.elements.every(_isFunctionStrategy(query));
+  }
+
+  hide(options) {
+    const { display } = {
+      display: 'none',
+      options
+    };
+
+    return this.each(function() {
+      this.style.display = display;
+    });
+  }
+
+  show(options) {
+    const { display } = {
+      display: 'block',
+      options
+    };
+
+    return this.each(function() {
+      this.style.display = display;
+    });
   }
 }
 
-// Add messages at Class
-Dom.messages = messages;
+const staticMethods = {
+  create(elements) {
+    return new _Dommer(elements);
+  },
+  each(arrayLike, callback) {
+    Array.from(arrayLike).forEach((element, index) => callback.apply(element, [index, element]))
+  },
+  extend(...objects) {
+    const [target, ...origins] = objects;
 
-export default Dom;
+    origins.forEach(origin => {
+      for (const prop in origin) {
+        target[prop] = origin[prop];
+      }
+    });
+
+    return target;
+  }
+};
+
+staticMethods.extend(_Dommer, staticMethods);
+staticMethods.extend(Dommer, staticMethods);
+
+// Add messages at Class
+_Dommer.messages = messages;
+
+// Define Constructor
+function Dommer(...args) {
+  return new _Dommer(...args);
+}
+
+// Create Alias
+Dommer.fn = _Dommer.prototype;
+
+export default Dommer;
+

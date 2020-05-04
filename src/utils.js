@@ -25,18 +25,32 @@ const _hasAttribute = _has(
 );
 
 const _hasMatch = (element, query) => {
-  return _hasClass(element, query)
-    || _hasId(element, query)
+  return _hasId(element, query)
+    || _hasClass(element, query)
     || _hasAttribute(element, query);
 }
 
 const _toString = target => Object.prototype.toString.call(target)
 
-
 const _isType = (target, type) =>
   _toString(target) === `[object ${type[0].toUpperCase()}${type.slice(1).toLowerCase()}]`
 
+const _isFunctionSelector = query => element => _hasMatch(element, query);
+
+const _isFunctionCallback = query => (element, index) => query.apply(element, [index, element]);
+
+const _isFunctionElement = query => element => element === query;
+
+const _isFunctionStrategy = (query) => {
+  return _isType(query, 'string')
+    ? _isFunctionSelector(query)
+    : _isType(query, 'function')
+      ? _isFunctionCallback(query)
+      : _isFunctionElement(query)
+}
+
 export {
   _hasMatch,
-  _isType
+  _isType,
+  _isFunctionStrategy
 };
