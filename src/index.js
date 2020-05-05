@@ -1,8 +1,14 @@
-import { _hasMatch, _isType, _isFunctionStrategy } from './utils.js';
+import {
+  _hasMatch,
+  _isType,
+  _isFunctionStrategy,
+  _toArray,
+  _isOutOfRange,
+} from './utils.js';
 
 const messages = {
   SELECTOR_EMPTY: () => 'Please inform a selector!',
-  INDEX_NOT_EXIST: index => `The informed index (${index}) isn\'t valid!`,
+  INDEX_NOT_EXIST: () => `Please inform an index!`,
 };
 
 class _Dommer {
@@ -36,7 +42,7 @@ class _Dommer {
   }
 
   toString() {
-    return '[object _Dommer]';
+    return '[object Dommer]';
   }
 
   // Attribute Methods
@@ -105,14 +111,18 @@ class _Dommer {
   // Traversing
 
   eq(index) {
-    const elementsLength = this.elements.length;
-    const targetIndex = index < 0 ? (elementsLength) + (index) : index;
-
-    if(targetIndex < 0 || targetIndex > elementsLength) {
-      throw new Error(messages.INDEX_NOT_EXIST(index));
+    if (_isType(index, 'undefined')) {
+      throw new Error(messages.INDEX_NOT_EXIST());
     }
 
-    return _Dommer.create(this.elements[targetIndex]);
+    const { length } = this.elements;
+    const targetIndex = (index < 0) ? length + index : index;
+
+    const element = _isOutOfRange(targetIndex, length - 1) ? [] : this.elements[targetIndex];
+
+    return _Dommer.create(
+      element
+    );
   }
 
   first() {
@@ -124,7 +134,7 @@ class _Dommer {
   }
 
   filter(query) {
-    return Dom.create(
+    return _Dommer.create(
       this.elements.filter((element, index) =>
         _isType(query, 'function') ? query.apply(element, [index, element]) : _hasMatch(element, query)
       )
@@ -137,7 +147,7 @@ class _Dommer {
     }
 
     return this.each(function() {
-      this.textContent = text
+      this.textContent = text;
     });
   }
 
@@ -182,22 +192,38 @@ class _Dommer {
       throw new Error('The map method needs to receive a function as callback!');
     }
 
-    return _Dommer.create(this.elements.map(callback))
+    return _Dommer.create(
+      _Dommer.map(this.elements, (index, element) => {
+        return callback.apply(element, [index, element]);
+      })
+    );
   }
 
   children() {
-    return _Dommer.create(
-      this.elements
-        .map(element => Array.from(element.children))
-        .flat(Infinity)
-    )
+    return this.map(function() {
+      return Array.from(this.children)
+    })
+    .flat(Infinity);
   }
 
   clone(deep) {
-    return _Dommer.create(
-      this.elements
-        .map(element => element.cloneNode(_isType(deep, 'boolean') && deep))
-    );
+    return this.map(function() {
+      return this.cloneNode(_isType(deep, 'boolean') && deep)
+    });
+  }
+
+  next(query) {
+    return this
+      .map(function() {
+        const sibling = this.nextElementSibling;
+
+        if (_isType(sibling, 'null')) return undefined;
+
+        return _isType(query, 'undefined') || _hasMatch(sibling, query)
+          ? sibling
+          : undefined;
+      })
+      .filter((index, element) => element)
   }
 
   closest() {}
@@ -207,12 +233,29 @@ const staticMethods = {
   create(elements) {
     return new _Dommer(elements);
   },
-  each(arrayLike, callback) {
+  each(iterable, callback) {
     if(!_isType(callback, 'function')) {
       throw new Error('The each method needs to receive a function as callback!');
     }
 
-    Array.from(arrayLike).forEach((element, index) => callback.apply(element, [index, element]))
+    _toArray(iterable).forEach((element, index) => callback.apply(element, [index, element]));
+  },
+  map(iterable, callback) {
+    if(!_isType(callback, 'function')) {
+      throw new Error('The map method needs to receive a function as callback!');
+    }
+
+    return _toArray(iterable)
+      .map((element, index) => callback.apply(element, [index, element]))
+  },
+  filter(iterable, callback) {
+    if(!_isType(callback, 'function')) {
+      throw new Error('The filter method needs to receive a function as callback!');
+    }
+
+    return _toArray(iterable).filter((element, index) => {
+      return (!_isType(element, 'undefined')) && callback.apply(element, [index, element])
+    });
   },
   extend(...objects) {
     const [target, ...origins] = objects;

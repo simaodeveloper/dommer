@@ -1,7 +1,7 @@
 const regex = {
-  CLASSNAME: () => /\.\w+\b/g,
-  ID: () => /\#\w+\b/g,
-  ATTRIBUTE: () => /\[[^\[\]]+\]/g
+  CLASSNAME: () => /\.[a-zA-Z\_\-\$\d]+[^.\"\s]/g,
+  ID: () => /\#[a-zA-Z\_\-\$\d]+[^#\"\s]/g,
+  ATTRIBUTE: () => /\[[a-zA-Z\d\=\"-_]+\]/g
 };
 
 const _has = (regex, callback) => (element, query) => {
@@ -21,7 +21,14 @@ const _hasId = _has(
 
 const _hasAttribute = _has(
   regex.ATTRIBUTE(),
-  (attribute, element) => element.hasAttribute(attribute.replace(/\[|\]/g, '').split('=')[0])
+  (attribute, element) => {
+    const [attr, value] = attribute.replace(/\[|\]|\"/g, '').split('=');
+    const elementAttrValue = element.getAttribute(attr);
+
+    return value
+      ? element.hasAttribute(attr) && value === elementAttrValue
+      : element.hasAttribute(attr)
+  }
 );
 
 const _hasMatch = (element, query) => {
@@ -49,8 +56,18 @@ const _isFunctionStrategy = (query) => {
       : _isFunctionElement(query)
 }
 
+const _toArray = iterable => {
+  return _isType(iterable, 'object')
+    ? Object.keys(iterable).map(key => iterable[key])
+    : Array.from(iterable);
+}
+
+const _isOutOfRange = (index, length) => index < 0 || index > length;
+
 export {
   _hasMatch,
   _isType,
-  _isFunctionStrategy
+  _isFunctionStrategy,
+  _toArray,
+  _isOutOfRange,
 };
