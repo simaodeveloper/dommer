@@ -78,7 +78,7 @@ class _Dommer {
   // Miscellaneous - DOM Elements Methods
 
   get(index) {
-    return this.elements[index];
+    return _isType(index, 'undefined') ? [...this.elements] : this.elements[index];
   }
 
   index(query) {
@@ -176,6 +176,31 @@ class _Dommer {
       this.style.display = display;
     });
   }
+
+  map(callback) {
+    if(!_isType(callback, 'function')) {
+      throw new Error('The map method needs to receive a function as callback!');
+    }
+
+    return _Dommer.create(this.elements.map(callback))
+  }
+
+  children() {
+    return _Dommer.create(
+      this.elements
+        .map(element => Array.from(element.children))
+        .flat(Infinity)
+    )
+  }
+
+  clone(deep) {
+    return _Dommer.create(
+      this.elements
+        .map(element => element.cloneNode(_isType(deep, 'boolean') && deep))
+    );
+  }
+
+  closest() {}
 }
 
 const staticMethods = {
@@ -183,6 +208,10 @@ const staticMethods = {
     return new _Dommer(elements);
   },
   each(arrayLike, callback) {
+    if(!_isType(callback, 'function')) {
+      throw new Error('The each method needs to receive a function as callback!');
+    }
+
     Array.from(arrayLike).forEach((element, index) => callback.apply(element, [index, element]))
   },
   extend(...objects) {
