@@ -64,10 +64,23 @@ const _toArray = iterable => {
 
 const _isOutOfRange = (index, length) => index < 0 || index > length;
 
+const _extend = (...objects) => {
+  const [target, ...origins] = objects;
+
+  origins.forEach(origin => {
+    for (const prop in origin) {
+      target[prop] = origin[prop];
+    }
+  });
+
+  return target;
+};
+
 export {
   _hasMatch,
   _isType,
   _isFunctionStrategy,
   _toArray,
   _isOutOfRange,
+  _extend,
 };

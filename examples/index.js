@@ -11,5 +11,5 @@ import Dommer from '../src/index.js';
 // );
 
 console.time('perf');
-console.log(Dommer('.tag').find('a'))
+console.log(Dommer('ul').find('a'))
 console.timeEnd('perf');
